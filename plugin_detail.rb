@@ -52,9 +52,13 @@ module Plugin::Mikustore
       plugin_name.set_markup("<span size=\"x-large\" weight=\"bold\">#{package[:name]}</span>")
       description.rewind(package[:description])
       latest_version.set_text((package[:version] || "なし").to_s)
-      requirement_mikutter.set_text(package[:depends][:mikutter])
-      requirement_plugin.set_text(package[:depends][:plugin].to_s)
-      if Plugin::Mikustore::Utils.installed_version(package[:slug])
+      requirement_mikutter.set_text(package[:depends][:mikutter].to_s)
+      if(package[:depends][:plugin])
+        requirement_plugin.set_text(package[:depends][:plugin].join(","))
+      else
+        requirement_plugin.set_text("指定なし")
+      end
+      if Plugin::Mikustore::Utils.installed_version(package[:slug].to_sym)
         install_button.sensitive = false
         install_button.set_label("インストール済")
       else

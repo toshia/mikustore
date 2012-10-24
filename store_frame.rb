@@ -3,13 +3,13 @@ require File.expand_path(File.join(File.dirname(__FILE__), "plugins_list"))
 require File.expand_path(File.join(File.dirname(__FILE__), "plugin_detail"))
 
 module Plugin::Mikustore
-  class StoreFrame < Gtk::HBox
+  class StoreFrame < Gtk::HPaned
 
     attr_reader :packages, :detail
 
     def initialize
       super
-      @packages = Plugin::Mikustore::PluginsList.new
+      @packages = Plugin::Mikustore::PluginsList.new.set_width_request(180)
       @detail = Plugin::Mikustore::PluginDetail.new
       @packages.signal_connect("row-activated"){|view, path, column|
         iter = view.model.get_iter(path)
@@ -23,8 +23,8 @@ module Plugin::Mikustore
               get_ancestor(Gtk::Window).ssc(:event, self) { |window, event|
                 set_height_request(window.window.geometry[3])
                 false } end end } }
-      add @packages
-      add @detail
+      pack1 @packages, false, false
+      pack2 @detail, true, false
     end
 
   end
