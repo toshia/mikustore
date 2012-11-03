@@ -8,4 +8,4 @@ version: '1.0'
 author: toshi_a
 name: filter
 description: ユーザ、単語、Twitterクライアントにマッチするツイートを表示させないようにするプラグイン
-url: https://github.com/toshia/mikutter_filter.git
+repository: https://github.com/toshia/mikutter_filter.git

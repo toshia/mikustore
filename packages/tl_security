@@ -8,4 +8,4 @@ version: '1.0'
 author: toshi_a
 name: TL Security
 description: tl secrity
-url: https://github.com/toshia/mikutter-tl-security.git
+repository: https://github.com/toshia/mikutter-tl-security.git

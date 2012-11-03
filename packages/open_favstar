@@ -9,4 +9,4 @@ version: '1.0'
 author: toshi_a
 name: こいつのfavstarを見る
 description: コンテキストメニューから、そのユーザのfavstarページを見ることができる
-url: https://github.com/toshia/mikutter-open-favstar.git
+repository: git://github.com/toshia/mikutter-open-favstar.git

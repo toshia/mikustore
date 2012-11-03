@@ -62,7 +62,7 @@ module Plugin::Mikustore
         install_button.sensitive = false
         install_button.set_label("インストール済")
       else
-        install_button.sensitive = false
+        install_button.sensitive = true
         install_button.set_label("インストール") end
       author.children.each{ |c| author.remove(c) }
       author_box = Gtk::HBox.new(false, 4)
@@ -80,8 +80,19 @@ module Plugin::Mikustore
     private
 
     def install_package
-      system("git clone #{package[:url]} ~/.mikutter/plugin/#{package[:slug]}")
-      Plugin.load_file("~/.mikutter/plugin/#{package[:slug]}/#{package[:slug]}.rb", package)
+      install_button.sensitive = false
+      install_button.set_label("インストール中")
+      Thread.new {
+        system("git clone #{package[:repository]} ~/.mikutter/plugin/#{package[:slug]}")
+        Deferred.new {
+          Plugin.load_file("~/.mikutter/plugin/#{package[:slug]}/#{package[:slug]}.rb", package)
+        }.next {
+          install_button.set_label("インストール済")
+        }.trap {
+          install_button.sensitive = true
+          install_button.set_label("インストール")
+        }
+      }
     end
 
     def caption(text)
