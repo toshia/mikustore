@@ -10,4 +10,4 @@ depends:
   - gui
   - settings
 author: cosmo__
-repository: https://github.com/cosmo0920/Call_API_fav.git
+repository: git://github.com/cosmo0920/Call_API_fav.git

@@ -8,4 +8,4 @@ version: '1.0'
 author: toshi_a
 name: subparts client
 description: 各ツイートを投稿するために使われたTwitterクライアントを表示します
-repository: https://github.com/toshia/mikutter-sub-parts-client.git
+repository: git://github.com/toshia/mikutter-sub-parts-client.git
