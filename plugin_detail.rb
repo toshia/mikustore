@@ -82,16 +82,23 @@ module Plugin::Mikustore
     def install_package
       install_button.sensitive = false
       install_button.set_label("インストール中")
+      plugin_dir = "~/.mikutter/plugin/#{package[:slug]}/"
+      plugin_main_file = "#{plugin_dir}#{package[:slug]}.rb"
+      if FileTest.exist?(plugin_dir)
+        return false end
       Thread.new {
-        system("git clone #{package[:repository]} ~/.mikutter/plugin/#{package[:slug]}")
-        Deferred.new {
-          Plugin.load_file("~/.mikutter/plugin/#{package[:slug]}/#{package[:slug]}.rb", package)
-        }.next {
-          install_button.set_label("インストール済")
-        }.trap {
-          install_button.sensitive = true
-          install_button.set_label("インストール")
-        }
+        if not system("git clone #{package[:repository]} #{plugin_dir}")
+          Deferred.fail($?) end
+      }.next {
+        notice "plugin load: #{plugin_main_file}"
+        Plugin.load_file(plugin_main_file, package)
+      }.next {
+        install_button.set_label("インストール済")
+      }.trap {
+        install_button.sensitive = true
+        install_button.set_label("インストール")
+        if FileTest.exist?(plugin_dir)
+          FileUtils.rm_rf(plugin_dir) end
       }
     end
 
@@ -100,3 +107,4 @@ module Plugin::Mikustore
     end
   end
 end
+
