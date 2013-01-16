@@ -5,10 +5,75 @@
   *作成中です。未実装機能などもあるし、へんなバグもあるので、まだ実用しないようにお願いします。*
 
 * 要件
-  gitコマンドが使える必要があります。また、gitが使えるネットワーク環境下にいる必要があります。
+  gitコマンドが使える必要があります。
 
 * 使い方
   設定にみっくストアというのが追加されとるじゃろ
 
-* リポジトリの登録方法
-  ちょっとまってね
+* プラグインストアの作成方法
+  ここでは、Twitterのスクリーンネーム @mikutter_bot という人が自分のプラグインストア（mikutter_bot_store）を作成する手順を紹介します。ご自分のscreen_nameに置き換えてください。
+
+** プラグインストアとは
+   プラグインストアは、あるmikutterプラグイン開発者のプラグインの一覧です。みっくストアが読めるフォーマットで書かれています。
+
+   みっくストアに並ぶプラグインは、標準ではほとんど何もありません。プラグイン開発者がプラグインストアを作成しておくと、ユーザはプラグインストアをインストールして、あなたのプラグインをみっくストア経由でダウンロードできるようになります。
+
+   UbuntuでいうところのPPAみたいなものです。
+
+** テンプレートをダウンロード
+   まず、私のプラグインストア兼サンプルである toshi_a_store をgithubでforkしましょう。toshi_aの部分を自分のSNに置き換えて、「mikutter_bot_store」とします。
+
+   https://github.com/toshia/toshi_a_store
+
+   plugins/ 以下を削除します。
+
+   : $ cd ~/.mikutter/plugin/mikutter_bot_store
+   : $ rm plugins/*
+
+   ファイルのリネームも忘れずに。
+
+   : $ git mv toshi_a_store.rb mikutter_bot_store.rb
+
+   mikutter_bot_store.rb を開いて、3行目の「Plugin.create 〜」の部分を以下のように書き換えましょう。
+
+#+BEGIN_SRC ruby
+Plugin.create :mikutter_bot_store do
+#+END_SRC
+
+** リポジトリに登録
+   次に、plugins/ 以下に、自分の書いたプラグインのspecファイルをコピーします。ここでは、teokureというプラグインを追加することにしましょう。
+
+*** specファイルの作成
+    specファイルの作り方を解説します。知っている、又はもう作成している人はこの節は読み飛ばしてもいいです。
+
+    まずspecファイルを以下のようにして自動的に生成します。途中、対話的プロンプトで2つほど質問されるので、適当に答えてください。
+
+    : $ /path/to/mikutter.rb spec ~/.mikutter/plugin/teokure
+    : teokure: name> teokure
+    : teokure: description> 残念なプラグインです
+
+    これでspecファイル(~/.mikutter/plugin/teokure/spec)が出来上がりました。
+
+*** specファイルを登録
+    登録するプラグイン「teokure」のspecファイルを、mikutter_bot_store の plugins/ にコピーします。この時、specファイルは同時にプラグインスラッグにリネームしましょう。
+    でないと、複数のプラグインを登録する時、名前が衝突します。
+
+    : cp ~/.mikutter/plugin/teokure/spec ~/.mikutter/plugin/mikutter_bot_store/plugins/teokure
+
+    コピーしたファイルを開いて、末尾に以下のような行を追加してください。
+
+#+BEGIN_SRC yaml
+repository: git://github.com/mikutter_bot/teokure.git
+#+END_SRC
+
+    「repository: 」のあとは、teokureプラグインをcloneするためのgitリポジトリのURLです。
+
+    あとは、mikutterの設定を開けば、プラグインストアのリストにteokureプラグインが表示されていることでしょう。
+
+** 公開
+   specファイルとREADMEの修正を忘れないでください。まず、依存関係などを改めるために、specファイルは一度削除して、再度作りなおすと良いでしょう。前述の 「specファイルを作成」の節で紹介した方法で作成できます。
+
+   READMEは、適当に書き直しましょう。これで、toshi_aという文字がなくなって、完全にあなたのプラグインストアになりました。
+
+   mikutter_bot_store プラグインをpushして、Twitterなどでそれとなく宣伝してみましょう。基本的には、夜10時くらいにツイートすると一番PVが多い気がします。
+   他のユーザは、このプラグインをインストールすると、みっくストアからあなたのプラグインをインストールできるようになります。
