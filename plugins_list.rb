@@ -8,19 +8,26 @@ module ::Plugin::Mikustore
 
     def initialize
       super
-      packages = {}
       @packages = {}.freeze
+      reload
+    end
+
+    def reload
+      packages = @packages.dup
+      self.sensitive = false
       Thread.new{ Plugin.filtering(:mikustore_plugins, []) }.next{ |args|
-        p args
         args.first.each{ |package|
-          packages[package[:slug].to_sym] = package
-          iter = model.append
-          iter[0] = Plugin::Mikustore::Utils.installed_version(package[:slug].to_sym, "○", "")
-          iter[1] = package[:name]
-          iter[2] = package
-        }
+          if not packages.has_key? package[:slug].to_sym
+            packages[package[:slug].to_sym] = package
+            iter = model.append
+            iter[0] = Plugin::Mikustore::Utils.installed_version(package[:slug].to_sym, "○", "")
+            iter[1] = package[:name]
+            iter[2] = package end }
         @packages = packages.freeze
-      }.terminate("パッケージ読み込みエラー")
+        self.sensitive = true
+      }.terminate("パッケージ読み込みエラー").trap{
+        self.sensitive = true
+      }
     end
 
     def column_schemer

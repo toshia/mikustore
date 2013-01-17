@@ -94,6 +94,7 @@ module Plugin::Mikustore
         Plugin.load_file(plugin_main_file, package)
       }.next {
         install_button.set_label("インストール済")
+        Plugin.call(:mikustore_plugin_installed, package[:slug])
       }.trap {
         install_button.sensitive = true
         install_button.set_label("インストール")
