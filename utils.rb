@@ -14,7 +14,8 @@ module Plugin::Mikustore
     # ==== Return
     # インストールされているプラグインのバージョン
     def installed_version(slug, unspecified_case="", notfound_case=nil)
-      if(Plugin.plugin_list.include?(slug))
+      plugin_dir = ENV["HOME"] + "/.mikutter/plugin/#{slug}/"
+      if(File.directory?(plugin_dir) && Plugin.plugin_list.include?(slug))
         plugin = Plugin.__send__(:create, slug)
         if defined? plugin.spec[:version]
           return plugin.spec[:version]
