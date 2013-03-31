@@ -8,7 +8,12 @@ module Plugin::Mikustore
       @plugin = package
       @depends = []
       @plugin_base = kwargs[:plugin_base] || "~/.mikutter/plugin"
-      @database = Plugin.filtering(:mikustore_plugins, []).freeze
+      @database = {}
+      Plugin.filtering(:mikustore_plugins, []).first.each do |entry|
+        @database[entry[:slug]] = entry
+      end
+      @depends = analyze_dependency(@plugin)
+      puts @depends.inspect
     end
 
     def install
@@ -24,20 +29,38 @@ module Plugin::Mikustore
     private
 
     def analyze_dependency(plugin)
-      if @depends.index(plugin[:slug])
-        raise "Circular dependency detected."
-      end
-
-      if plugin[:depends][:plugin]
-        plugin[:depends][:plugin]
-        .select{|pl| Plugin.plugin_list.include?(pl[:slug])}
-        .select{|pl| @depends.index(depend).nil?}
-        .each do |depend|
-          @depends << depend
-          analyze_dependency(depend)
+      # 依存してるプラグインを幅優先探索で列挙していく．
+      level = 0
+      q = [plugin]
+      found = {plugin[:slug].to_sym => level}
+      while not q.empty?
+        level += 1
+        next_q = []
+        q.each do |current|
+          if current[:depends] && current[:depends][:plugin]
+            current[:depends][:plugin].each do |depend|
+              depend_sym = depend.to_sym
+              depend_level = found[depend_sym]
+              # 以前に訪問したノードを再訪問しようとしていれば，循環参照が発生している．
+              if depend_level && depend_level < level
+                raise "Circular dependency detected."
+              end
+              if depend_level.nil? && Plugin::Mikustore::Utils.installed_version(depend_sym).nil? 
+                # 依存してるプラグインのインストール方法が分からない時はとりあえず例外投げとく．
+                depend_spec = @database[depend_sym]
+                if depend_spec
+                  next_q << depend_spec
+                  found[depend_sym] = level
+                else
+                  raise "Missing dependency: #{depend}"
+                end
+              end
+            end
+          end
         end
+        q = next_q
       end
-      @depends << plugin
+      found.to_a.sort_by{|e| e[1]}.map{|e| e[0]}.reverse
     end
 
     def install_git(package)
