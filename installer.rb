@@ -17,12 +17,13 @@ module Plugin::Mikustore
     end
 
     def install
-      install_git(@plugin).next { |main_file|
-        notice "plugin load: #{main_file}"
-        Plugin.load_file(main_file, @plugin)
-      }.trap { |e|
-        puts e
-        revert_git(@plugin)
+      specs = @depends.map{|slug| @database[slug]}
+      specs.reduce(Thread.new{}){|prev,dep| prev.next{install_it(dep)}.next{|f| load_it(f, dep)}}.trap {|e|
+        puts "#{e}: #{e.backtrace.join}"
+        specs.reverse_each do |dep|
+          revert_it(dep)
+        end
+        Deferred.fail
       }
     end
 
@@ -63,17 +64,28 @@ module Plugin::Mikustore
       found.to_a.sort_by{|e| e[1]}.map{|e| e[0]}.reverse
     end
 
-    def install_git(package)
-      Thread.new {
-        plugin_dir = File.expand_path(File.join("#{@plugin_base}", package[:slug].to_s))
-        Deferred.fail(Exception.new("#{plugin_dir} already exists.")) if FileTest.exist?(plugin_dir)
+    def install_it(plugin)
+      install_git(plugin)
+    end
 
-        if system("git clone #{package[:repository]} #{plugin_dir}")
-          File.join(plugin_dir, "#{package[:slug]}.rb")
-        else
-          Deferred.fail($?)
-        end
-      }
+    def load_it(file, plugin)
+      notice "plugin load: #{file}"
+      Plugin.load_file(file, plugin)
+    end
+
+    def revert_it(plugin)
+      revert_git(plugin)
+    end
+
+    def install_git(package)
+      plugin_dir = File.expand_path(File.join("#{@plugin_base}", package[:slug].to_s))
+      Deferred.fail(Exception.new("#{plugin_dir} already exists.")) if FileTest.exist?(plugin_dir)
+
+      if system("git clone #{package[:repository]} #{plugin_dir}")
+        File.join(plugin_dir, "#{package[:slug]}.rb")
+      else
+        Deferred.fail($?)
+      end
     end
 
     def revert_git(package)
