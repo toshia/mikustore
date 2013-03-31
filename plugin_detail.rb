@@ -35,7 +35,9 @@ module Plugin::Mikustore
         true }
       @install_button.sensitive = false
       @uninstall_button.ssc(:clicked) {
-        uninstall_package
+        if Gtk::Dialog.confirm("プラグインのファイルも削除されますが，本当にアンインストールしますか？")
+          uninstall_package
+        end
         true
       }
       @uninstall_button.sensitive = false
@@ -120,7 +122,6 @@ module Plugin::Mikustore
     def uninstall_package
       Plugin.uninstall(package[:slug])
       plugin_dir = File.expand_path("~/.mikutter/plugin/#{package[:slug]}/")
-      puts plugin_dir
       if FileTest.exist?(plugin_dir)
         FileUtils.rm_rf(plugin_dir) end
       set_button_state
