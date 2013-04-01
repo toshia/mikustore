@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 require File.expand_path(File.join(File.dirname(__FILE__), "utils"))
+require File.expand_path(File.join(File.dirname(__FILE__), "installer"))
 
 module Plugin::Mikustore
   class PluginDetail < Gtk::VBox
@@ -97,26 +98,20 @@ module Plugin::Mikustore
     end
 
     def install_package
-      install_button.sensitive = false
-      install_button.set_label("インストール中")
-      plugin_dir = "~/.mikutter/plugin/#{package[:slug]}/"
-      plugin_main_file = "#{plugin_dir}#{package[:slug]}.rb"
-      if FileTest.exist?(plugin_dir)
-        return false end
-      Thread.new {
-        if not system("git clone #{package[:repository]} #{plugin_dir}")
-          Deferred.fail($?) end
-      }.next {
-        notice "plugin load: #{plugin_main_file}"
-        Plugin.load_file(plugin_main_file, package)
-      }.next {
-        set_button_state
-        Plugin.call(:mikustore_plugin_installed, package[:slug])
-      }.trap {
-        set_button_state
-        if FileTest.exist?(plugin_dir)
-          FileUtils.rm_rf(plugin_dir) end
-      }
+      installer = Installer.new(package)
+      if installer.valid
+        install_button.sensitive = false
+        install_button.set_label("インストール中")
+        installer.install.next{
+          set_button_state
+          Plugin.call(:mikustore_plugin_installed, package[:slug])
+        }.trap {
+          Gtk::Dialog.alert("プラグインのインストールに失敗しました．")
+          set_button_state
+        }
+      else
+        Gtk::Dialog.alert("依存関係の解析に失敗しました．\n循環参照か解決できない依存があります．")
+      end
     end
 
     def uninstall_package
