@@ -3,6 +3,8 @@ require File.expand_path(File.join(File.dirname(__FILE__), "utils"))
 
 module Plugin::Mikustore
   class Installer
+    attr_reader :valid
+
     def initialize(package, *opt)
       kwargs = opt.first || {}
       @plugin = package
@@ -12,18 +14,23 @@ module Plugin::Mikustore
       Plugin.filtering(:mikustore_plugins, []).first.each do |entry|
         @database[entry[:slug]] = entry
       end
-      @depends = analyze_dependency(@plugin)
-      puts @depends.inspect
+      begin
+        @depends = analyze_dependency(@plugin)
+        @valid = true
+        #puts @depends.inspect
+      rescue => e
+        notice e
+        @valid = false
+      end
     end
 
     def install
       specs = @depends.map{|slug| @database[slug]}
-      specs.reduce(Thread.new{}){|prev,dep| prev.next{install_it(dep)}.next{|f| load_it(f, dep)}}.trap {|e|
-        puts "#{e}: #{e.backtrace.join}"
-        specs.reverse_each do |dep|
-          revert_it(dep)
+      specs.reduce(Thread.new{}){|prev,dep| prev.next{install_it(dep)}}.trap {|e|
+        if e.is_a? Hash # plugin spec
+          revert_it(e)
         end
-        Deferred.fail
+        Deffered.fail
       }
     end
 
@@ -47,12 +54,12 @@ module Plugin::Mikustore
                 raise "Circular dependency detected."
               end
               if depend_level.nil? && Plugin::Mikustore::Utils.installed_version(depend_sym).nil? 
-                # 依存してるプラグインのインストール方法が分からない時はとりあえず例外投げとく．
                 depend_spec = @database[depend_sym]
                 if depend_spec
                   next_q << depend_spec
                   found[depend_sym] = level
                 else
+                  # 依存してるプラグインのインストール方法が分からない時はとりあえず例外投げとく．
                   raise "Missing dependency: #{depend}"
                 end
               end
@@ -65,7 +72,8 @@ module Plugin::Mikustore
     end
 
     def install_it(plugin)
-      install_git(plugin)
+      main_file = install_git(plugin)
+      load_it(main_file, plugin)
     end
 
     def load_it(file, plugin)
@@ -84,7 +92,7 @@ module Plugin::Mikustore
       if system("git clone #{package[:repository]} #{plugin_dir}")
         File.join(plugin_dir, "#{package[:slug]}.rb")
       else
-        Deferred.fail($?)
+        Deferred.fail(package)
       end
     end
 

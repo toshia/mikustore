@@ -98,15 +98,20 @@ module Plugin::Mikustore
     end
 
     def install_package
-      install_button.sensitive = false
-      install_button.set_label("インストール中")
       installer = Installer.new(package)
-      installer.install.next{
-        set_button_state
-        Plugin.call(:mikustore_plugin_installed, package[:slug])
-      }.trap {
-        set_button_state
-      }
+      if installer.valid
+        install_button.sensitive = false
+        install_button.set_label("インストール中")
+        installer.install.next{
+          set_button_state
+          Plugin.call(:mikustore_plugin_installed, package[:slug])
+        }.trap {
+          Gtk::Dialog.alert("プラグインのインストールに失敗しました．")
+          set_button_state
+        }
+      else
+        Gtk::Dialog.alert("依存関係の解析に失敗しました．\n循環参照か解決できない依存があります．")
+      end
     end
 
     def uninstall_package
