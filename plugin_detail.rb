@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 require File.expand_path(File.join(File.dirname(__FILE__), "utils"))
+require File.expand_path(File.join(File.dirname(__FILE__), "installer"))
 
 module Plugin::Mikustore
   class PluginDetail < Gtk::VBox
 
-    attr_reader :plugin_name, :description, :requirements, :install_button, :latest_version, :author
+    attr_reader :plugin_name, :description, :requirements, :install_button, :uninstall_button, :latest_version, :author
     attr_reader :requirement_mikutter, :requirement_plugin
     attr_reader :package
 
@@ -17,6 +18,7 @@ module Plugin::Mikustore
       @author = Gtk::HBox.new
       @requirements = Gtk::Table.new(2, 2)
       @install_button = Gtk::Button.new("インストール")
+      @uninstall_button = Gtk::Button.new("アンインストール")
       @requirement_mikutter = Gtk::Label.new
       @requirement_plugin = Gtk::Label.new
       @requirements.
@@ -33,6 +35,13 @@ module Plugin::Mikustore
         }
         true }
       @install_button.sensitive = false
+      @uninstall_button.ssc(:clicked) {
+        if Gtk::Dialog.confirm("プラグインのファイルも削除されますが，本当にアンインストールしますか？")
+          uninstall_package
+        end
+        true
+      }
+      @uninstall_button.sensitive = false
 
       requirements_group = Gtk::Frame.new.set_border_width(8)
       requirements_group.set_label_widget(caption("依存関係"))
@@ -43,6 +52,7 @@ module Plugin::Mikustore
       closeup requirements_group.add(@requirements)
       closeup Gtk::VBox.new.closeup(caption("開発者").left).closeup(@author)
       closeup @install_button
+      closeup @uninstall_button
     end
 
     # パッケージが選択された時。画面を書き換える
@@ -58,12 +68,7 @@ module Plugin::Mikustore
       else
         requirement_plugin.set_text("指定なし")
       end
-      if Plugin::Mikustore::Utils.installed_version(package[:slug].to_sym)
-        install_button.sensitive = false
-        install_button.set_label("インストール済")
-      else
-        install_button.sensitive = true
-        install_button.set_label("インストール") end
+      set_button_state
       author.children.each{ |c| author.remove(c) }
       author_box = Gtk::HBox.new(false, 4)
       author.add(author_box)
@@ -79,28 +84,42 @@ module Plugin::Mikustore
 
     private
 
-    def install_package
-      install_button.sensitive = false
-      install_button.set_label("インストール中")
-      plugin_dir = "~/.mikutter/plugin/#{package[:slug]}/"
-      plugin_main_file = "#{plugin_dir}#{package[:slug]}.rb"
-      if FileTest.exist?(plugin_dir)
-        return false end
-      Thread.new {
-        if not system("git clone #{package[:repository]} #{plugin_dir}")
-          Deferred.fail($?) end
-      }.next {
-        notice "plugin load: #{plugin_main_file}"
-        Plugin.load_file(plugin_main_file, package)
-      }.next {
-        install_button.set_label("インストール済")
-        Plugin.call(:mikustore_plugin_installed, package[:slug])
-      }.trap {
+    def set_button_state
+      if Plugin::Mikustore::Utils.installed_version(package[:slug].to_sym)
+        install_button.sensitive = false
+        install_button.set_label("インストール")
+        uninstall_button.sensitive = true
+        uninstall_button.set_label("アンインストール")
+      else
         install_button.sensitive = true
         install_button.set_label("インストール")
-        if FileTest.exist?(plugin_dir)
-          FileUtils.rm_rf(plugin_dir) end
-      }
+        uninstall_button.sensitive = false
+        uninstall_button.set_label("アンインストール") end
+    end
+
+    def install_package
+      installer = Installer.new(package)
+      if installer.valid
+        install_button.sensitive = false
+        install_button.set_label("インストール中")
+        installer.install.next{
+          set_button_state
+          Plugin.call(:mikustore_plugin_installed, package[:slug])
+        }.trap {
+          Gtk::Dialog.alert("プラグインのインストールに失敗しました．")
+          set_button_state
+        }
+      else
+        Gtk::Dialog.alert("依存関係の解析に失敗しました．\n循環参照か解決できない依存があります．")
+      end
+    end
+
+    def uninstall_package
+      Plugin.uninstall(package[:slug])
+      plugin_dir = File.expand_path("~/.mikutter/plugin/#{package[:slug]}/")
+      if FileTest.exist?(plugin_dir)
+        FileUtils.rm_rf(plugin_dir) end
+      set_button_state
     end
 
     def caption(text)
