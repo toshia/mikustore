@@ -105,10 +105,12 @@ module Plugin::Mikustore
         installer.install.next{
           set_button_state
           Plugin.call(:mikustore_plugin_installed, package[:slug])
-        }.trap {
-          Gtk::Dialog.alert("プラグインのインストールに失敗しました．")
+        }.trap { |e|
+          Gtk::Dialog.alert("プラグインのインストールに失敗しました。")
           set_button_state
-        }
+          notice e
+          raise e
+        }.terminate("プラグインのインストールに失敗しました。")
       else
         Gtk::Dialog.alert("依存関係の解析に失敗しました．\n循環参照か解決できない依存があります．")
       end
