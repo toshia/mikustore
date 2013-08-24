@@ -25,5 +25,17 @@ module Plugin::Mikustore
         return notfound_case
       end
     end
+
+    # インストール済みのプラグインに最新版があるかどうかを返す
+    # ==== Args
+    # [slug] プラグインスラッグ
+    # [upstream_version] 最新版
+    # ==== Return
+    # アップグレード可能なバージョンがあれば真
+    def update_exist?(slug, upstream_version)
+      installed_version = Plugin::Mikustore::Utils.installed_version(slug.to_sym, nil, nil)
+      installed_version and upstream_version and installed_version.split(".") < upstream_version.split(".")
+    end
+
   end
 end

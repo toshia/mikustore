@@ -87,9 +87,24 @@ module Plugin::Mikustore
 
     def install_git(package)
       plugin_dir = File.expand_path(File.join("#{@plugin_base}", package[:slug].to_s))
-      Deferred.fail(Exception.new("#{plugin_dir} already exists.")) if FileTest.exist?(plugin_dir)
+      if FileTest.exist?(plugin_dir)
+        return upgrade_git(package)
+      end
 
       if system("git clone #{package[:repository]} #{plugin_dir}")
+        plugin_dir
+      else
+        Deferred.fail(package)
+      end
+    end
+
+    def upgrade_git(package)
+      plugin_dir = File.expand_path(File.join("#{@plugin_base}", package[:slug].to_s))
+      git_dir = File.join(plugin_dir,'.git')
+      Deferred.fail(Exception.new("#{plugin_dir} is not exists.")) if not FileTest.exist?(plugin_dir)
+      if system("git --git-dir=#{git_dir} fetch origin") and
+          system("git --git-dir=#{git_dir} reset --hard version-#{package[:version]}")
+        Plugin.instance(package[:slug]).uninstall
         plugin_dir
       else
         Deferred.fail(package)
