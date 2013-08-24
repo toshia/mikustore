@@ -86,8 +86,14 @@ module Plugin::Mikustore
 
     def set_button_state
       if Plugin::Mikustore::Utils.installed_version(package[:slug].to_sym)
-        install_button.sensitive = false
-        install_button.set_label("インストール")
+        installed_version = Plugin::Mikustore::Utils.installed_version(package[:slug].to_sym, nil, nil)
+        if Plugin::Mikustore::Utils.update_exist?(package[:slug], package[:version])
+          install_button.sensitive = true
+          install_button.set_label("アップグレード")
+        else
+          install_button.sensitive = false
+          install_button.set_label("インストール")
+        end
         uninstall_button.sensitive = true
         uninstall_button.set_label("アンインストール")
       else
