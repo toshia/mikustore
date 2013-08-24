@@ -1,7 +1,7 @@
 ---
 slug: :mikustore
 depends:
-  mikutter: 0.2.0.1051
+  mikutter: 0.2.2
   plugin:
   - settings
 version: '0.1'

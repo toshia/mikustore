@@ -30,7 +30,7 @@ module Plugin::Mikustore
         if e.is_a? Hash # plugin spec
           revert_it(e)
         end
-        Deffered.fail
+        Deferred.fail e
       }
     end
 
@@ -72,13 +72,13 @@ module Plugin::Mikustore
     end
 
     def install_it(plugin)
-      main_file = install_git(plugin)
-      load_it(main_file, plugin)
+      path = install_git(plugin)
+      load_it(path, plugin)
     end
 
-    def load_it(file, plugin)
-      notice "plugin load: #{file}"
-      Plugin.load_file(file, plugin)
+    def load_it(path, plugin)
+      plugin[:path] = path
+      Miquire::Plugin.load(plugin)
     end
 
     def revert_it(plugin)
@@ -90,7 +90,7 @@ module Plugin::Mikustore
       Deferred.fail(Exception.new("#{plugin_dir} already exists.")) if FileTest.exist?(plugin_dir)
 
       if system("git clone #{package[:repository]} #{plugin_dir}")
-        File.join(plugin_dir, "#{package[:slug]}.rb")
+        plugin_dir
       else
         Deferred.fail(package)
       end
